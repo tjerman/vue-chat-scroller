@@ -55,6 +55,8 @@ export default {
       shrink: false,
       initialized: false,
       onBottom: this.startBottom,
+      blockScrollDown: false,
+      blockScrollUp: false,
     }
   },
   computed: {
@@ -145,7 +147,7 @@ export default {
       // This if structure is by design - removes the need to check scroll edges on
       // screen resize.
       this.onBottom = false
-      if (scrolledBottom(target)) {
+      if (scrolledBottom(target) && !this.blockScrollDown) {
         console.debug('scroll.bottom', { target })
         this.onBottom = true
         if (this.isLastViewPool) {
@@ -153,6 +155,7 @@ export default {
           this.$emit('scroll.bottom.last')
         } else {
           this.$emit('scroll.bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length })
+          this.blockScrollDown = true
           this.shiftViewPool({
             start: Math.min(this.itemPool.length - this.visiblePoolSize, this.visiblePoolStart + this.visiblePoolSize),
             end: Math.min(this.itemPool.length, this.visiblePoolEnd + this.visiblePoolSize),
@@ -164,13 +167,14 @@ export default {
         }
       }
 
-      if (scrolledTop(target)) {
+      if (scrolledTop(target) && !this.blockScrollUp) {
         console.debug('scroll.top', { target })
         if (this.isFirstViewPool) {
           console.debug('scroll.top.first')
           this.$emit('scroll.top.first')
         } else {
           this.$emit('scroll.top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0 })
+          this.blockScrollUp = true
           this.shiftViewPool({
             start: Math.max(0, this.visiblePoolStart - this.visiblePoolSize),
             end: Math.max(0, this.visiblePoolEnd - this.visiblePoolSize),
@@ -197,7 +201,10 @@ export default {
           if (!downNoStick) {
             this.$nextTick(() => {
               target.scrollTop = target.scrollHeight
+              this.blockScrollDown = false
             })
+          } else {
+            this.blockScrollDown = false
           }
         }, 0)
       } else if (direction === 'up') {
@@ -211,6 +218,7 @@ export default {
           const prevChild = target.children[this.visiblePoolSize]
           prevChild.scrollIntoView()
           target.scrollTop += prevOffset
+          this.blockScrollUp = false
         })
       }
     },
