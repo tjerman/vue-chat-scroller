@@ -176,7 +176,7 @@ export default {
       visiblePoolSize: 0,
       initial: true,
       lastScrollPos: 0,
-      scrollDir: undefined,
+      scrollDir: this.startBottom ? 'down' : 'up',
       initialized: false,
       onBottom: this.startBottom,
     }
