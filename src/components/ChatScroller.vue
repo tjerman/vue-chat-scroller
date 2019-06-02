@@ -138,7 +138,7 @@ export default {
           })
           this.shrink = true
         }
-        }
+      }
       if (scrolledTop(target)) {
         console.debug('scroll.top', { target })
         if (this.isFirstViewPool) {
@@ -180,12 +180,12 @@ export default {
         }
         this.visiblePoolStart = start
         setTimeout(() => {
-            // Scroll down to the previus first element
-            const prevChild = target.children[this.visiblePoolSize]
+          // Scroll down to the previus first element
+          const prevChild = target.children[this.visiblePoolSize]
           prevChild.scrollIntoView()
           target.scrollTop += prevOffset
         }, 0)
-        }
+      }
     },
   },
 
@@ -212,10 +212,19 @@ export default {
   watch: {
     itemPool: {
       immediate: true,
-      handler: function (nval = []) {
-        if (nval.length <= 0 || this.initialized) return
-        this.init()
-        this.initialized = true
+      handler: function (nval = [], oval = []) {
+        if (nval.length <= 0) return
+        if (!this.initialized) {
+          this.init()
+          this.initialized = true
+          return
+        }
+        // Possible new item
+        let end = this.itemPool.length
+        let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
+        if (this.isLastViewPool) {
+          this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom, direction: 'down', downNoStick: !this.onBottom })
+        }
       },
     }
   },
