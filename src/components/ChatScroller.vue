@@ -68,6 +68,20 @@ export default {
   },
 
   methods: {
+    getPoolSizes () {
+      const ref = this.$refs.scrollerWrapper
+      const scrlH = ref.clientHeight
+      const minH = this.minHeight
+      const visiblePoolSize = Math.ceil((scrlH + 2*this.buffer) / minH)
+      console.debug({ ref, scrlH, minH, visiblePoolSize, buffer: this.buffer })
+      return { ref, scrlH, minH, visiblePoolSize, buffer: this.buffer }
+    },
+
+    onResize () {
+      let { ref, scrlH, minH, visiblePoolSize } = this.getPoolSizes()
+      this.visiblePoolSize = visiblePoolSize
+    },
+
     topRem () {
       this.visiblePoolStart ++
     },
@@ -82,12 +96,8 @@ export default {
     },
     init () {
       this.$nextTick(() => {
-        const ref = this.$refs.scrollerWrapper
-        const scrlH = ref.clientHeight
-        const minH = this.minHeight
-        const elCount = Math.ceil((scrlH + 2*this.buffer) / minH)
-        console.debug({ref, scrlH, minH, elCount, buffer: this.buffer})
-        this.visiblePoolSize = elCount
+        let { ref, scrlH, minH, visiblePoolSize } = this.getPoolSizes()
+        this.visiblePoolSize = visiblePoolSize
 
         if (this.startBottom) {
           this.visiblePoolEnd = this.itemPool.length
@@ -142,6 +152,13 @@ export default {
 
       }
     },
+  },
+
+  mounted () {
+    window.addEventListener('resize', this.onResize)
+  },
+  beforeDestroy () {
+    window.removeEventListener('resize', this.onResize)
   },
 
   data () {
