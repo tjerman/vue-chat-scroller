@@ -46,6 +46,19 @@ export default {
       default: false,
     },
   },
+
+  data () {
+    return {
+      visiblePoolStart: 0,
+      visiblePoolEnd: 0,
+      visiblePoolSize: 0,
+      shrink: false,
+      lastScrollPos: 0,
+      scrollDir: this.startBottom ? 'down' : 'up',
+      initialized: false,
+      onBottom: this.startBottom,
+    }
+  },
   computed: {
     viewPool () {
       return this.itemPool.slice(this.visiblePoolStart, this.visiblePoolEnd)
@@ -67,18 +80,45 @@ export default {
     },
   },
 
+  watch: {
+    itemPool: {
+      immediate: true,
+      handler: function (nval = []) {
+        if (nval.length <= 0) return
+        if (!this.initialized) {
+          this.init()
+          this.initialized = true
+          return
+        }
+        // Possible new item
+        let end = this.itemPool.length
+        let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
+        if (this.isLastViewPool) {
+          this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom, direction: 'down', downNoStick: !this.onBottom })
+        }
+      },
+    },
+  },
+
+  mounted () {
+    window.addEventListener('resize', this.onResize)
+  },
+  beforeDestroy () {
+    window.removeEventListener('resize', this.onResize)
+  },
+
   methods: {
     getPoolSizes () {
       const ref = this.$refs.scrollerWrapper
       const scrlH = ref.clientHeight
       const minH = this.minHeight
-      const visiblePoolSize = Math.ceil((scrlH + 2*this.buffer) / minH)
+      const visiblePoolSize = Math.ceil((scrlH + 2 * this.buffer) / minH)
       console.debug({ ref, scrlH, minH, visiblePoolSize, buffer: this.buffer })
       return { ref, scrlH, minH, visiblePoolSize, buffer: this.buffer }
     },
 
     onResize () {
-      let { ref, scrlH, minH, visiblePoolSize } = this.getPoolSizes()
+      let { ref, visiblePoolSize } = this.getPoolSizes()
       this.visiblePoolSize = visiblePoolSize
 
       if (this.onBottom) {
@@ -87,20 +127,20 @@ export default {
     },
 
     topRem () {
-      this.visiblePoolStart ++
+      this.visiblePoolStart++
     },
     topAdd () {
-      this.visiblePoolStart --
+      this.visiblePoolStart--
     },
     botRem () {
-      this.visiblePoolEnd --
+      this.visiblePoolEnd--
     },
     botAdd () {
-      this.visiblePoolEnd ++
+      this.visiblePoolEnd++
     },
     init () {
       this.$nextTick(() => {
-        let { ref, scrlH, minH, visiblePoolSize } = this.getPoolSizes()
+        let { visiblePoolSize } = this.getPoolSizes()
         this.visiblePoolSize = visiblePoolSize
 
         if (this.startBottom) {
@@ -187,46 +227,6 @@ export default {
         }, 0)
       }
     },
-  },
-
-  mounted () {
-    window.addEventListener('resize', this.onResize)
-  },
-  beforeDestroy () {
-    window.removeEventListener('resize', this.onResize)
-  },
-
-  data () {
-    return {
-      visiblePoolStart: 0,
-      visiblePoolEnd: 0,
-      visiblePoolSize: 0,
-      shrink: false,
-      lastScrollPos: 0,
-      scrollDir: this.startBottom ? 'down' : 'up',
-      initialized: false,
-      onBottom: this.startBottom,
-    }
-  },
-
-  watch: {
-    itemPool: {
-      immediate: true,
-      handler: function (nval = [], oval = []) {
-        if (nval.length <= 0) return
-        if (!this.initialized) {
-          this.init()
-          this.initialized = true
-          return
-        }
-        // Possible new item
-        let end = this.itemPool.length
-        let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
-        if (this.isLastViewPool) {
-          this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom, direction: 'down', downNoStick: !this.onBottom })
-        }
-      },
-    }
   },
 }
 
