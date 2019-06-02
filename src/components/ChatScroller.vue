@@ -203,12 +203,12 @@ export default {
           this.visiblePoolEnd = end
         }
         this.visiblePoolStart = start
-        setTimeout(() => {
+        this.$nextTick(() => {
           // Scroll down to the previus first element
           const prevChild = target.children[this.visiblePoolSize]
           prevChild.scrollIntoView()
           target.scrollTop += prevOffset
-        }, 0)
+        })
       }
     },
   },
