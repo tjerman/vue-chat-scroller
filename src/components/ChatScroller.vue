@@ -116,28 +116,29 @@ export default {
       this.scrollDir = this.lastScrollPos < target.scrollTop ? 'down' : 'up'
       this.lastScrollPos = target.scrollTop
 
-      if (this.scrollUp && this.isFirstViewPool) {
-        this.$emit('pool.end.first')
-        return
-      }
-      if (this.scrollDown && this.isLastViewPool) {
-        this.$emit('pool.end.last')
-        return
-      }
-
       // Check if window should change
       if (scrolledBottom(target)) {
         console.debug('scroll.bottom', { target })
+        if (this.isLastViewPool) {
+          console.debug('pool.end.last')
+          this.$emit('pool.end.last')
+        } else {
         target.scrollTop = target.scrollTop - 1
         if (!this.initial) {
-          this.visiblePoolStart += this.visiblePoolSize
+            this.visiblePoolStart = Math.min(this.itemPool.length - this.visiblePoolSize, this.visiblePoolStart + this.visiblePoolSize)
         }
         setTimeout(() => {
-          this.visiblePoolEnd += this.visiblePoolSize
+            this.visiblePoolEnd = Math.min(this.itemPool.length, this.visiblePoolEnd + this.visiblePoolSize)
           this.initial = false
         }, 0)
-      } else if (scrolledTop(target)) {
+        }
+      }
+      if (scrolledTop(target)) {
         console.debug('scroll.top', { target })
+        if (this.isFirstViewPool) {
+          console.debug('pool.end.first')
+          this.$emit('pool.end.first')
+        } else {
         const prevOffset = target.scrollTop
         if (!this.initial) {
           this.visiblePoolEnd -= this.visiblePoolSize
@@ -145,11 +146,12 @@ export default {
         this.visiblePoolStart -= this.visiblePoolSize
         this.initial = false
         setTimeout(() => {
-          const prevChild = target.children[(this.visiblePoolEnd - this.visiblePoolStart) / 2]
+            // Scroll down to the previus first element
+            const prevChild = target.children[this.visiblePoolSize]
           prevChild.scrollIntoView()
           target.scrollTop += prevOffset
         }, 0)
-
+        }
       }
     },
   },
