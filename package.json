@@ -1,7 +1,10 @@
 {
   "name": "vue-chat-scroller",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "contributors": [
+    "Tomaž Jerman <tomaz.jerman121@gmail.com>"
+  ],
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
