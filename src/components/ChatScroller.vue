@@ -124,8 +124,8 @@ export default {
         this.visiblePoolSize = visiblePoolSize
 
         if (this.startBottom) {
-          this.visiblePoolEnd = this.itemPool.length
-          this.visiblePoolStart = this.visiblePoolEnd - this.visiblePoolSize
+          this.visiblePoolEnd = this.itemPool.length || 0
+          this.visiblePoolStart = Math.max(0, this.visiblePoolEnd - this.visiblePoolSize)
           this.$nextTick(() => {
             this.$refs.scrollerWrapper.scrollTop = this.$refs.scrollerWrapper.scrollHeight
           })
