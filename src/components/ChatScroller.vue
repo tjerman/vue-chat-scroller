@@ -126,18 +126,6 @@ export default {
       }
     },
 
-    topRem () {
-      this.visiblePoolStart++
-    },
-    topAdd () {
-      this.visiblePoolStart--
-    },
-    botRem () {
-      this.visiblePoolEnd--
-    },
-    botAdd () {
-      this.visiblePoolEnd++
-    },
     init () {
       this.$nextTick(() => {
         let { visiblePoolSize } = this.getPoolSizes()
