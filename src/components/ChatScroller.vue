@@ -53,8 +53,6 @@ export default {
       visiblePoolEnd: 0,
       visiblePoolSize: 0,
       shrink: false,
-      lastScrollPos: 0,
-      scrollDir: this.startBottom ? 'down' : 'up',
       initialized: false,
       onBottom: this.startBottom,
     }
@@ -70,13 +68,6 @@ export default {
 
     isFirstViewPool () {
       return this.visiblePoolStart <= 0
-    },
-
-    scrollDown () {
-      return this.scrollDir === 'down'
-    },
-    scrollUp () {
-      return this.scrollDir === 'up'
     },
   },
 
@@ -113,7 +104,7 @@ export default {
       const scrlH = ref.clientHeight
       const minH = this.minHeight
       const visiblePoolSize = Math.ceil((scrlH + 2 * this.buffer) / minH)
-      console.debug({ ref, scrlH, minH, visiblePoolSize, buffer: this.buffer })
+      console.debug('getPoolSizes', { ref, scrlH, minH, visiblePoolSize, buffer: this.buffer })
       return { ref, scrlH, minH, visiblePoolSize, buffer: this.buffer }
     },
 
@@ -121,6 +112,7 @@ export default {
       let { ref, visiblePoolSize } = this.getPoolSizes()
       this.visiblePoolSize = visiblePoolSize
 
+      // If user is scrolled down, keep them there
       if (this.onBottom) {
         ref.scrollTop = ref.scrollHeight
       }
@@ -142,21 +134,22 @@ export default {
         }
       })
     },
-    onScroll (e) {
-      const { target } = e
 
-      this.scrollDir = this.lastScrollPos < target.scrollTop ? 'down' : 'up'
-      this.lastScrollPos = target.scrollTop
+    // Handle view pools
+    onScroll ({ target }) {
+      if (target === undefined) return
 
-      // Check if window should change
+      // This if structure is by design - removes the need to check scroll edges on
+      // screen resize.
       this.onBottom = false
       if (scrolledBottom(target)) {
         console.debug('scroll.bottom', { target })
         this.onBottom = true
         if (this.isLastViewPool) {
-          console.debug('pool.end.last')
-          this.$emit('pool.end.last')
+          console.debug('scroll.bottom.last')
+          this.$emit('scroll.bottom.last')
         } else {
+          this.$emit('scroll.bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length })
           this.shiftViewPool({
             start: Math.min(this.itemPool.length - this.visiblePoolSize, this.visiblePoolStart + this.visiblePoolSize),
             end: Math.min(this.itemPool.length, this.visiblePoolEnd + this.visiblePoolSize),
@@ -167,12 +160,14 @@ export default {
           this.shrink = true
         }
       }
+
       if (scrolledTop(target)) {
         console.debug('scroll.top', { target })
         if (this.isFirstViewPool) {
-          console.debug('pool.end.first')
-          this.$emit('pool.end.first')
+          console.debug('scroll.top.first')
+          this.$emit('scroll.top.first')
         } else {
+          this.$emit('scroll.top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0 })
           this.shiftViewPool({
             start: Math.max(0, this.visiblePoolStart - this.visiblePoolSize),
             end: Math.max(0, this.visiblePoolEnd - this.visiblePoolSize),
@@ -189,12 +184,13 @@ export default {
       console.debug('shiftViewPool', { start, end, target, shrink, direction, downNoStick })
 
       if (direction === 'down') {
-        target.scrollTop = target.scrollTop - 1
+        target.scrollTop -= 1
         if (shrink) {
           this.visiblePoolStart = start
         }
         setTimeout(() => {
           this.visiblePoolEnd = end
+          target.scrollTop += 1
           if (!downNoStick) {
             this.$nextTick(() => {
               target.scrollTop = target.scrollHeight
