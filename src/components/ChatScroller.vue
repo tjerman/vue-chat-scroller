@@ -129,28 +129,56 @@ export default {
           console.debug('pool.end.last')
           this.$emit('pool.end.last')
         } else {
-        target.scrollTop = target.scrollTop - 1
-        if (!this.initial) {
-            this.visiblePoolStart = Math.min(this.itemPool.length - this.visiblePoolSize, this.visiblePoolStart + this.visiblePoolSize)
+          this.shiftViewPool({
+            start: Math.min(this.itemPool.length - this.visiblePoolSize, this.visiblePoolStart + this.visiblePoolSize),
+            end: Math.min(this.itemPool.length, this.visiblePoolEnd + this.visiblePoolSize),
+            target,
+            shrink: this.shrink,
+            direction: 'down',
+          })
+          this.shrink = true
         }
-        setTimeout(() => {
-            this.visiblePoolEnd = Math.min(this.itemPool.length, this.visiblePoolEnd + this.visiblePoolSize)
-          this.initial = false
-        }, 0)
         }
-      }
       if (scrolledTop(target)) {
         console.debug('scroll.top', { target })
         if (this.isFirstViewPool) {
           console.debug('pool.end.first')
           this.$emit('pool.end.first')
         } else {
-        const prevOffset = target.scrollTop
-        if (!this.initial) {
-          this.visiblePoolEnd -= this.visiblePoolSize
+          this.shiftViewPool({
+            start: Math.max(0, this.visiblePoolStart - this.visiblePoolSize),
+            end: Math.max(0, this.visiblePoolEnd - this.visiblePoolSize),
+            target,
+            shrink: this.shrink,
+            direction: 'up',
+          })
+          this.shrink = true
         }
-        this.visiblePoolStart -= this.visiblePoolSize
-        this.initial = false
+      }
+    },
+
+    shiftViewPool ({ start, end, target, shrink = false, direction = 'down', downNoStick = true }) {
+      console.debug('shiftViewPool', { start, end, target, shrink, direction, downNoStick })
+
+      if (direction === 'down') {
+        target.scrollTop = target.scrollTop - 1
+        if (shrink) {
+          this.visiblePoolStart = start
+        }
+        setTimeout(() => {
+          this.visiblePoolEnd = end
+          if (!downNoStick) {
+            this.$nextTick(() => {
+              target.scrollTop = target.scrollHeight
+            })
+          }
+        }, 0)
+      } else if (direction === 'up') {
+        const prevOffset = target.scrollTop
+        if (shrink) {
+          this.visiblePoolEnd = end
+        }
+        this.visiblePoolStart = start
         setTimeout(() => {
             // Scroll down to the previus first element
             const prevChild = target.children[this.visiblePoolSize]
@@ -158,7 +186,6 @@ export default {
           target.scrollTop += prevOffset
         }, 0)
         }
-      }
     },
   },
 
@@ -174,7 +201,7 @@ export default {
       visiblePoolStart: 0,
       visiblePoolEnd: 0,
       visiblePoolSize: 0,
-      initial: true,
+      shrink: false,
       lastScrollPos: 0,
       scrollDir: this.startBottom ? 'down' : 'up',
       initialized: false,
