@@ -15,7 +15,7 @@
 
 <script>
 const scrolledBottom = ({ scrollTop: st, scrollHeight: sh, clientHeight: ch }, buffer = 0) => st + ch + buffer + 1 >= sh
-const scrolledTop = ({ scrollTop: st, buffer = 0 }) => st - buffer - 1 <= 0
+const scrolledTop = ({ scrollTop: st }, buffer = 0) => st - buffer - 1 <= 0
 
 export default {
   props: {
