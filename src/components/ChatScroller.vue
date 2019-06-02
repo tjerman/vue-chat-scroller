@@ -75,6 +75,18 @@ export default {
     botAdd () {
       this.visiblePoolEnd ++
     },
+    init () {
+      this.$nextTick(() => {
+        const ref = this.$refs.scrollerWrapper
+        const scrlH = ref.clientHeight
+        const minH = this.minHeight
+        const elCount = Math.ceil((scrlH + 2*this.buffer) / minH)
+        console.debug({ref, scrlH, minH, elCount, buffer: this.buffer})
+        this.visiblePoolSize = elCount
+
+        this.visiblePoolEnd = this.visiblePoolStart + this.visiblePoolSize
+      })
+    },
     onScroll (e) {
       const { target } = e
 
@@ -125,21 +137,22 @@ export default {
       initial: true,
       lastScrollPos: 0,
       scrollDir: undefined,
+      initialized: false,
     }
   },
 
-  created () {
-    this.$nextTick(() => {
-      const ref = this.$refs.scrollerWrapper
-      const scrlH = ref.clientHeight
-      const minH = this.minHeight
-      const elCount = Math.ceil((scrlH + 2*this.buffer) / minH)
-      console.debug({ref, scrlH, minH, elCount, buffer: this.buffer})
-      this.visiblePoolSize = elCount
-      this.visiblePoolEnd = this.visiblePoolStart + this.visiblePoolSize
-    })
+  watch: {
+    itemPool: {
+      immediate: true,
+      handler: function (nval = []) {
+        if (nval.length <= 0 || this.initialized) return
+        this.init()
+        this.initialized = true
+      },
+    }
   },
 }
+
 </script>
 
 <style scoped lang="scss">
