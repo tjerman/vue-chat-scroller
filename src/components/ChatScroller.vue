@@ -34,6 +34,11 @@ export default {
       required: false,
       default: 200,
     },
+    startBottom: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
     // @todo
     addaptiveBuffer: {
       type: Boolean,
@@ -84,7 +89,15 @@ export default {
         console.debug({ref, scrlH, minH, elCount, buffer: this.buffer})
         this.visiblePoolSize = elCount
 
+        if (this.startBottom) {
+          this.visiblePoolEnd = this.itemPool.length
+          this.visiblePoolStart = this.visiblePoolEnd - this.visiblePoolSize
+          this.$nextTick(() => {
+            this.$refs.scrollerWrapper.scrollTop = this.$refs.scrollerWrapper.scrollHeight
+          })
+        } else {
         this.visiblePoolEnd = this.visiblePoolStart + this.visiblePoolSize
+        }
       })
     },
     onScroll (e) {
