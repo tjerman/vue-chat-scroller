@@ -80,6 +80,10 @@ export default {
     onResize () {
       let { ref, scrlH, minH, visiblePoolSize } = this.getPoolSizes()
       this.visiblePoolSize = visiblePoolSize
+
+      if (this.onBottom) {
+        ref.scrollTop = ref.scrollHeight
+      }
     },
 
     topRem () {
@@ -117,8 +121,10 @@ export default {
       this.lastScrollPos = target.scrollTop
 
       // Check if window should change
+      this.onBottom = false
       if (scrolledBottom(target)) {
         console.debug('scroll.bottom', { target })
+        this.onBottom = true
         if (this.isLastViewPool) {
           console.debug('pool.end.last')
           this.$emit('pool.end.last')
@@ -172,6 +178,7 @@ export default {
       lastScrollPos: 0,
       scrollDir: undefined,
       initialized: false,
+      onBottom: this.startBottom,
     }
   },
 
