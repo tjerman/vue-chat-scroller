@@ -69,6 +69,9 @@ export default {
     isFirstViewPool () {
       return this.visiblePoolStart <= 0
     },
+    isViewPoolFull () {
+      return this.visiblePoolSize <= this.viewPool.length
+    },
   },
 
   watch: {
@@ -85,7 +88,7 @@ export default {
         let end = this.itemPool.length
         let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
         if (this.isLastViewPool) {
-          this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom, direction: 'down', downNoStick: !this.onBottom })
+          this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
         }
       },
     },
