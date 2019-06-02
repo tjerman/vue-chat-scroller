@@ -14,8 +14,8 @@
 </template>
 
 <script>
-const scrolledBottom = ({ scrollTop: st, scrollHeight: sh, clientHeight: ch }, buffer = 0) => st + ch + buffer >= sh
-const scrolledTop = ({ scrollTop: st, buffer = 0 }) => st - buffer <= 0
+const scrolledBottom = ({ scrollTop: st, scrollHeight: sh, clientHeight: ch }, buffer = 0) => st + ch + buffer + 1 >= sh
+const scrolledTop = ({ scrollTop: st, buffer = 0 }) => st - buffer - 1 <= 0
 
 export default {
   props: {
@@ -96,7 +96,7 @@ export default {
             this.$refs.scrollerWrapper.scrollTop = this.$refs.scrollerWrapper.scrollHeight
           })
         } else {
-        this.visiblePoolEnd = this.visiblePoolStart + this.visiblePoolSize
+          this.visiblePoolEnd = this.visiblePoolStart + this.visiblePoolSize
         }
       })
     },
@@ -117,6 +117,7 @@ export default {
 
       // Check if window should change
       if (scrolledBottom(target)) {
+        console.debug('scroll.bottom', { target })
         target.scrollTop = target.scrollTop - 1
         if (!this.initial) {
           this.visiblePoolStart += this.visiblePoolSize
@@ -126,6 +127,7 @@ export default {
           this.initial = false
         }, 0)
       } else if (scrolledTop(target)) {
+        console.debug('scroll.top', { target })
         const prevOffset = target.scrollTop
         if (!this.initial) {
           this.visiblePoolEnd -= this.visiblePoolSize
