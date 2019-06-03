@@ -231,7 +231,7 @@ export default {
         if (shrink) {
           this.visiblePoolStart = start
         }
-        setTimeout(() => {
+        this.$nextTick(() => {
           this.visiblePoolEnd = end
           target.scrollTop += 1
           if (!downNoStick) {
@@ -242,7 +242,7 @@ export default {
           } else {
             this.blockScrollDown = false
           }
-        }, 0)
+        })
       } else if (direction === 'up') {
         const prevOffset = target.scrollTop
         if (shrink) {
