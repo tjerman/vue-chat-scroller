@@ -52,7 +52,6 @@ export default {
       visiblePoolStart: 0,
       visiblePoolEnd: 0,
       visiblePoolSize: 0,
-      shrink: false,
       initialized: false,
       onBottom: this.startBottom,
       blockScrollDown: false,
@@ -187,10 +186,9 @@ export default {
             start: Math.min(this.itemPool.length - this.visiblePoolSize, this.visiblePoolStart + this.visiblePoolSize),
             end: Math.min(this.itemPool.length, this.visiblePoolEnd + this.visiblePoolSize),
             target,
-            shrink: this.shrink,
+            shrink: this.isViewPoolFull,
             direction: 'down',
           })
-          this.shrink = true
         }
       }
 
@@ -206,10 +204,9 @@ export default {
             start: Math.max(0, this.visiblePoolStart - this.visiblePoolSize),
             end: Math.max(0, this.visiblePoolEnd - this.visiblePoolSize),
             target,
-            shrink: this.shrink,
+            shrink: this.isViewPoolFull,
             direction: 'up',
           })
-          this.shrink = true
         }
       }
     },
