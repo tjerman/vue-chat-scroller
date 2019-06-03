@@ -1,1 +1,1 @@
-export { default as ChatScroller } from './components/ChatScroller'
+export { default as ChatScroller } from './src/components/ChatScroller.vue'
