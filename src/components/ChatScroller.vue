@@ -92,11 +92,11 @@ export default {
 
         console.debug({ prevFirstID: this.prevFirstID, crtFirstID: this.itemPool[0].id })
         let displace = 0
+        let vpf = this.isViewPoolFull
         if (this.prevFirstID !== this.itemPool[0].id) {
           while (this.itemPool[displace].id !== this.prevFirstID && displace < this.itemPool.length) { displace++ }
           this.prevFirstID = this.itemPool[0].id
           console.debug({ displace })
-          let vpf = this.isViewPoolFull
 
           // Shift pool by displaced items
           this.visiblePoolEnd += displace
@@ -114,6 +114,11 @@ export default {
 
         // Possible new item
         let end = this.itemPool.length
+
+        // Preserve current position if view pool is full, user not scrolled to bottom & new item arrives
+        if (vpf) {
+          end = this.visiblePoolEnd
+        }
         let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
         if (this.isLastViewPool) {
           this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
