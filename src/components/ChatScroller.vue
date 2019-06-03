@@ -72,7 +72,7 @@ export default {
       return this.visiblePoolStart <= 0
     },
     isViewPoolFull () {
-      return this.visiblePoolSize <= this.viewPool.length
+      return this.visiblePoolSize * 2 <= this.viewPool.length
     },
   },
 
