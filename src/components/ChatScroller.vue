@@ -96,6 +96,7 @@ export default {
           return
         }
 
+        let target = this.$refs.scrollerWrapper
         console.debug({ prevFirstID: this.prevFirstID, crtFirstID: this.itemPool[0].id })
         let displace = 0
         let vpf = this.isViewPoolFull
@@ -108,13 +109,17 @@ export default {
           this.visiblePoolEnd += displace
           console.debug({ visiblePoolEnd: this.visiblePoolEnd })
 
-          if (vpf) {
+          if (vpf && !this.onTop) {
             this.visiblePoolStart += displace
           } else {
             // Offset to maximize pools available size
             let startOffset = Math.max(0, (this.visiblePoolEnd - this.visiblePoolStart) - this.adjustedViewPoolSize)
             console.debug({ startOffset })
             this.visiblePoolStart += startOffset
+          }
+
+          if (this.onTop) {
+            this.onScrollTop({ target })
           }
         }
 
@@ -126,7 +131,7 @@ export default {
           end = this.visiblePoolEnd
         }
         let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
-          this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
+        this.shiftViewPool({ end, start, target, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
       },
     },
   },
@@ -175,15 +180,7 @@ export default {
       })
     },
 
-    // Handle view pools
-    onScroll ({ target }) {
-      if (target === undefined) return
-
-      // This if structure is by design - removes the need to check scroll edges on
-      // screen resize.
-      this.onBottom = false
-      this.onTop = false
-      if (scrolledBottom(target) && !this.blockScrollDown) {
+    onScrollBottom ({ target }) {
         console.debug('scroll.bottom', { target })
         this.onBottom = true
         if (this.isLastViewPool) {
@@ -206,9 +203,9 @@ export default {
             direction: 'down',
           })
         }
-      }
+    },
 
-      if (scrolledTop(target) && !this.blockScrollUp) {
+    onScrollTop ({ target }) {
         console.debug('scroll.top', { target })
         this.onTop = true
         if (this.isFirstViewPool) {
@@ -231,6 +228,22 @@ export default {
             vps,
           })
         }
+    },
+
+    // Handle view pools
+    onScroll ({ target }) {
+      if (target === undefined) return
+
+      // This if structure is by design - removes the need to check scroll edges on
+      // screen resize.
+      this.onBottom = false
+      this.onTop = false
+      if (scrolledBottom(target) && !this.blockScrollDown) {
+        this.onScrollBottom({ target })
+      }
+
+      if (scrolledTop(target) && !this.blockScrollUp) {
+        this.onScrollTop({ target })
       }
     },
 
