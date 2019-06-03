@@ -1,7 +1,8 @@
 {
   "name": "vue-chat-scroller",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
+  "main": "index.js",
   "contributors": [
     "Tomaž Jerman <tomaz.jerman121@gmail.com>"
   ],
