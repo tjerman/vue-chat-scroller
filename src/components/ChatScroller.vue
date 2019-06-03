@@ -86,6 +86,10 @@ export default {
     isViewPoolFull () {
       return this.adjustedViewPoolSize <= this.viewPool.length
     },
+
+    currentViewPoolSize () {
+      return this.visiblePoolEnd - this.visiblePoolStart
+  },
   },
 
   watch: {
@@ -151,6 +155,52 @@ export default {
   },
 
   methods: {
+    gotoItem ({ id, index }) {
+      if (!id && !index) return 'item.invalidParams'
+
+      if (index === undefined) {
+        // Find index from id
+        index = 0
+        while (index < this.itemPool.length && this.itemPool[index].id !== id) { index++ }
+        // edge case for index 0
+        if (this.itemPool[index].id !== id) {
+          return 'item.notFound'
+        }
+      }
+
+      let isDown = this.visiblePoolStart < index
+      if (!isDown) return 'direction.notSupported'
+
+      // Scroll to
+      // Adjust visible pool
+      let target = this.$refs.scrollerWrapper
+      let offset = index - this.visiblePoolStart
+      let start, end
+
+      start = index
+      end = Math.min(this.itemPool.length, start + this.currentViewPoolSize)
+      start -= this.currentViewPoolSize - (end - start)
+      console.debug('gotoMessage', { start, end })
+
+      this.shiftViewPool({
+        start,
+        end,
+        vps: 0,
+        target,
+        shrink: this.isViewPoolFull,
+        direction: isDown ? 'down' : 'up',
+      })
+
+      // Scroll to
+      let domPos = Math.min(target.childElementCount - 1, index - this.visiblePoolStart)
+      console.debug({ domPos })
+      this.$nextTick(() => {
+        target.children[domPos].scrollIntoView(!this.isLastViewPool)
+      })
+
+      return true
+    },
+
     getPoolSizes () {
       const ref = this.$refs.scrollerWrapper
       const clientH = ref.clientHeight
