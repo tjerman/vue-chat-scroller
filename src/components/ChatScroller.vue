@@ -143,6 +143,7 @@ export default {
         if (!this.isLastViewPool && this.prevLastID !== crtLastID) {
           this.$emit('item:new:invisible', { id: crtLastID, index: this.itemPool.length - 1 })
         }
+        this.prevLastID = this.itemPool[this.itemPool.length - 1].id
       },
     },
   },
