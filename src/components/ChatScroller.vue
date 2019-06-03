@@ -54,6 +54,7 @@ export default {
       visiblePoolSize: 0,
       initialized: false,
       onBottom: this.startBottom,
+      onTop: !this.startBottom,
       blockScrollDown: false,
       blockScrollUp: false,
       prevFirstID: undefined,
@@ -181,6 +182,7 @@ export default {
       // This if structure is by design - removes the need to check scroll edges on
       // screen resize.
       this.onBottom = false
+      this.onTop = false
       if (scrolledBottom(target) && !this.blockScrollDown) {
         console.debug('scroll.bottom', { target })
         this.onBottom = true
@@ -208,6 +210,7 @@ export default {
 
       if (scrolledTop(target) && !this.blockScrollUp) {
         console.debug('scroll.top', { target })
+        this.onTop = true
         if (this.isFirstViewPool) {
           console.debug('scroll.top.first')
           this.$emit('scroll.top.first')
