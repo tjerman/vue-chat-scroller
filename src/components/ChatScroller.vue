@@ -57,6 +57,7 @@ export default {
       onBottom: this.startBottom,
       blockScrollDown: false,
       blockScrollUp: false,
+      prevFirstID: undefined,
     }
   },
   computed: {
@@ -81,11 +82,37 @@ export default {
       immediate: true,
       handler: function (nval = []) {
         if (nval.length <= 0) return
+        if (this.prevFirstID === undefined) {
+          this.prevFirstID = this.itemPool[0].id
+        }
         if (!this.initialized) {
           this.init()
           this.initialized = true
           return
         }
+
+        console.debug({ prevFirstID: this.prevFirstID, crtFirstID: this.itemPool[0].id })
+        let displace = 0
+        if (this.prevFirstID !== this.itemPool[0].id) {
+          while (this.itemPool[displace].id !== this.prevFirstID && displace < this.itemPool.length) { displace++ }
+          this.prevFirstID = this.itemPool[0].id
+          console.debug({ displace })
+          let vpf = this.isViewPoolFull
+
+          // Shift pool by displaced items
+          this.visiblePoolEnd += displace
+          console.debug({ visiblePoolEnd: this.visiblePoolEnd })
+
+          if (vpf) {
+            this.visiblePoolStart += displace
+          } else {
+            // Offset to maximize pools available size
+            let startOffset = Math.max(0, (this.visiblePoolEnd - this.visiblePoolStart) - this.visiblePoolSize * 2)
+            console.debug({ startOffset })
+            this.visiblePoolStart += startOffset
+          }
+        }
+
         // Possible new item
         let end = this.itemPool.length
         let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
