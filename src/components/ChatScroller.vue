@@ -181,53 +181,53 @@ export default {
     },
 
     onScrollBottom ({ target }) {
-        console.debug('scroll.bottom', { target })
-        this.onBottom = true
-        if (this.isLastViewPool) {
-          console.debug('scroll.bottom.last')
+      console.debug('scroll.bottom', { target })
+      this.onBottom = true
+      if (this.isLastViewPool) {
+        console.debug('scroll.bottom.last')
         this.$emit('scroll:bottom:last')
-        } else {
+      } else {
         this.$emit('scroll:bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length })
-          this.blockScrollDown = true
-          let vps = this.visiblePoolSize
-          if (this.visiblePoolEnd + vps >= this.itemPool.length) {
-            vps = Math.min(this.itemPool.length - this.visiblePoolEnd, this.visiblePoolSize)
-          }
-
-          this.shiftViewPool({
-            start: this.visiblePoolStart + vps,
-            end: this.visiblePoolEnd + vps,
-            vps,
-            target,
-            shrink: this.isViewPoolFull,
-            direction: 'down',
-          })
+        this.blockScrollDown = true
+        let vps = this.visiblePoolSize
+        if (this.visiblePoolEnd + vps >= this.itemPool.length) {
+          vps = Math.min(this.itemPool.length - this.visiblePoolEnd, this.visiblePoolSize)
         }
+
+        this.shiftViewPool({
+          start: this.visiblePoolStart + vps,
+          end: this.visiblePoolEnd + vps,
+          vps,
+          target,
+          shrink: this.isViewPoolFull,
+          direction: 'down',
+        })
+      }
     },
 
     onScrollTop ({ target }) {
-        console.debug('scroll.top', { target })
-        this.onTop = true
-        if (this.isFirstViewPool) {
-          console.debug('scroll.top.first')
+      console.debug('scroll.top', { target })
+      this.onTop = true
+      if (this.isFirstViewPool) {
+        console.debug('scroll.top.first')
         this.$emit('scroll:top:first')
-        } else {
+      } else {
         this.$emit('scroll:top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0 })
-          this.blockScrollUp = true
+        this.blockScrollUp = true
 
-          let vps = this.visiblePoolSize
-          if (this.visiblePoolStart <= this.visiblePoolSize) {
-            vps = this.visiblePoolStart
-          }
-          this.shiftViewPool({
-            start: this.visiblePoolStart - vps,
-            end: this.visiblePoolEnd - vps,
-            target,
-            shrink: this.isViewPoolFull,
-            direction: 'up',
-            vps,
-          })
+        let vps = this.visiblePoolSize
+        if (this.visiblePoolStart <= this.visiblePoolSize) {
+          vps = this.visiblePoolStart
         }
+        this.shiftViewPool({
+          start: this.visiblePoolStart - vps,
+          end: this.visiblePoolEnd - vps,
+          target,
+          shrink: this.isViewPoolFull,
+          direction: 'up',
+          vps,
+        })
+      }
     },
 
     // Handle view pools
@@ -256,7 +256,7 @@ export default {
           this.visiblePoolStart = start
         }
         this.$nextTick(() => {
-        this.visiblePoolEnd = end
+          this.visiblePoolEnd = end
           target.scrollTop += 1
           if (!downNoStick) {
             this.$nextTick(() => {
