@@ -14,8 +14,8 @@
 </template>
 
 <script>
-const scrolledBottom = ({ scrollTop: st, scrollHeight: sh, clientHeight: ch }, buffer = 0) => st + ch + buffer + 1 >= sh
-const scrolledTop = ({ scrollTop: st }, buffer = 0) => st - buffer - 1 <= 0
+const scrolledBottom = ({ scrollTop: st, scrollHeight: sh, clientHeight: ch }, buffer = 0) => Math.ceil(st + ch + buffer) >= sh
+const scrolledTop = ({ scrollTop: st }, buffer = 0) => Math.ceil(st - buffer) <= 0
 
 export default {
   props: {
@@ -57,6 +57,7 @@ export default {
       blockScrollDown: false,
       blockScrollUp: false,
       prevFirstID: undefined,
+      viewPoolSizeMult: 2,
     }
   },
   computed: {
@@ -65,14 +66,18 @@ export default {
     },
 
     isLastViewPool () {
-      return this.visiblePoolEnd + 1 >= this.itemPool.length
+      return this.visiblePoolEnd >= this.itemPool.length
     },
 
     isFirstViewPool () {
       return this.visiblePoolStart <= 0
     },
+    adjustedViewPoolSize () {
+      return this.visiblePoolSize * this.viewPoolSizeMult
+    },
+
     isViewPoolFull () {
-      return this.visiblePoolSize * 2 <= this.viewPool.length
+      return this.adjustedViewPoolSize <= this.viewPool.length
     },
   },
 
@@ -106,7 +111,7 @@ export default {
             this.visiblePoolStart += displace
           } else {
             // Offset to maximize pools available size
-            let startOffset = Math.max(0, (this.visiblePoolEnd - this.visiblePoolStart) - this.visiblePoolSize * 2)
+            let startOffset = Math.max(0, (this.visiblePoolEnd - this.visiblePoolStart) - this.adjustedViewPoolSize)
             console.debug({ startOffset })
             this.visiblePoolStart += startOffset
           }
@@ -120,9 +125,7 @@ export default {
           end = this.visiblePoolEnd
         }
         let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
-        if (this.isLastViewPool) {
           this.shiftViewPool({ end, start, target: this.$refs.scrollerWrapper, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
-        }
       },
     },
   },
@@ -137,11 +140,11 @@ export default {
   methods: {
     getPoolSizes () {
       const ref = this.$refs.scrollerWrapper
-      const scrlH = ref.clientHeight
+      const clientH = ref.clientHeight
       const minH = this.minHeight
-      const visiblePoolSize = Math.ceil((scrlH + 2 * this.buffer) / minH)
-      console.debug('getPoolSizes', { ref, scrlH, minH, visiblePoolSize, buffer: this.buffer })
-      return { ref, scrlH, minH, visiblePoolSize, buffer: this.buffer }
+      const visiblePoolSize = Math.ceil((clientH + 2 * this.buffer) / minH)
+      console.debug('getPoolSizes', { ref, clientH, minH, visiblePoolSize, buffer: this.buffer })
+      return { ref, clientH, minH, visiblePoolSize, buffer: this.buffer }
     },
 
     onResize () {
@@ -166,7 +169,7 @@ export default {
             this.$refs.scrollerWrapper.scrollTop = this.$refs.scrollerWrapper.scrollHeight
           })
         } else {
-          this.visiblePoolEnd = this.visiblePoolStart + this.visiblePoolSize
+          this.visiblePoolEnd = Math.min(this.itemPool.length, this.visiblePoolStart + this.visiblePoolSize)
         }
       })
     },
@@ -217,8 +220,8 @@ export default {
             vps = this.visiblePoolStart
           }
           this.shiftViewPool({
-            start: Math.max(0, this.visiblePoolStart - vps),
-            end: Math.max(0, this.visiblePoolEnd - vps),
+            start: this.visiblePoolStart - vps,
+            end: this.visiblePoolEnd - vps,
             target,
             shrink: this.isViewPoolFull,
             direction: 'up',
@@ -236,8 +239,8 @@ export default {
         if (shrink) {
           this.visiblePoolStart = start
         }
+        this.visiblePoolEnd = end
         this.$nextTick(() => {
-          this.visiblePoolEnd = end
           target.scrollTop += 1
           if (!downNoStick) {
             this.$nextTick(() => {
