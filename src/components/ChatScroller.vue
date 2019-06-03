@@ -64,6 +64,7 @@ export default {
       blockScrollDown: false,
       blockScrollUp: false,
       prevFirstID: undefined,
+      prevLastID: undefined,
     }
   },
   computed: {
@@ -94,6 +95,9 @@ export default {
         if (nval.length <= 0) return
         if (this.prevFirstID === undefined) {
           this.prevFirstID = this.itemPool[0].id
+        }
+        if (this.prevLastID === undefined) {
+          this.prevLastID = this.itemPool[this.itemPool.length - 1].id
         }
         if (!this.initialized) {
           this.init()
@@ -130,6 +134,11 @@ export default {
 
         let vps = (this.visiblePoolEnd - this.visiblePoolStart) >= this.adjustedViewPoolSize ? 0 : 1
         this.shiftViewPool({ end, start, vps, target, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
+
+        const crtLastID = this.itemPool[this.itemPool.length - 1].id
+        if (!this.isLastViewPool && this.prevLastID !== crtLastID) {
+          this.$emit('item:new:invisible', { id: crtLastID, index: this.itemPool.length - 1 })
+        }
       },
     },
   },
