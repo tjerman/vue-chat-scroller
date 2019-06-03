@@ -112,20 +112,11 @@ export default {
 
           // Shift pool by displaced items
           this.visiblePoolEnd += displace
-          console.debug({ visiblePoolEnd: this.visiblePoolEnd })
-
-          if (vpf && !this.onTop) {
             this.visiblePoolStart += displace
-          } else {
-            // Offset to maximize pools available size
-            let startOffset = Math.max(0, (this.visiblePoolEnd - this.visiblePoolStart) - this.adjustedViewPoolSize)
-            console.debug({ startOffset })
-            this.visiblePoolStart += startOffset
-          }
+          console.debug({ visiblePoolEnd: this.visiblePoolEnd, visiblePoolStart: this.visiblePoolStart, vpf, onTop: this.onTop })
 
-          if (this.onTop) {
             this.onScrollTop({ target })
-          }
+          return
         }
 
         // Possible new item
@@ -213,7 +204,6 @@ export default {
 
     onScrollTop ({ target }) {
       console.debug('scroll.top', { target })
-      this.onTop = true
       if (this.isFirstViewPool) {
         console.debug('scroll.top.first')
         this.$emit('scroll:top:first')
@@ -221,10 +211,11 @@ export default {
         this.$emit('scroll:top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0 })
         this.blockScrollUp = true
 
-        let vps = this.visiblePoolSize
-        if (this.visiblePoolStart <= this.visiblePoolSize) {
-          vps = this.visiblePoolStart
+        let vps = Math.min(this.visiblePoolSize, Math.min(this.visiblePoolStart, this.adjustedViewPoolSize - this.viewPool.length))
+        if (this.onTop && vps === 0) {
+          vps = Math.min(this.visiblePoolStart, this.visiblePoolSize)
         }
+        console.debug({ vps, visiblePoolStart: this.visiblePoolStart, visiblePoolEnd: this.visiblePoolEnd, visiblePoolSize: this.visiblePoolSize })
         this.shiftViewPool({
           start: this.visiblePoolStart - vps,
           end: this.visiblePoolEnd - vps,
@@ -250,6 +241,7 @@ export default {
       }
 
       if (scrolledTop(target) && !this.blockScrollUp) {
+        this.onTop = true
         this.onScrollTop({ target })
       }
     },
