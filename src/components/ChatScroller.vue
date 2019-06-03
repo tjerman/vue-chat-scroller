@@ -5,9 +5,9 @@
     @scroll.passive="onScroll">
 
     <slot
-      v-for="({ item, index }) in viewPool"
+      v-for="(item, i) in viewPool"
       :item="item"
-      :index="index"
+      :index="visiblePoolStart + i"
       class="item-wrapper" />
 
   </div>
@@ -61,7 +61,7 @@ export default {
   },
   computed: {
     viewPool () {
-      return this.itemPool.slice(this.visiblePoolStart, this.visiblePoolEnd).map((item, index) => ({ item, index: this.visiblePoolStart + index }))
+      return this.itemPool.slice(this.visiblePoolStart, this.visiblePoolEnd)
     },
 
     isLastViewPool () {
