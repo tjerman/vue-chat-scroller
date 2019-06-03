@@ -239,8 +239,8 @@ export default {
         if (shrink) {
           this.visiblePoolStart = start
         }
-        this.visiblePoolEnd = end
         this.$nextTick(() => {
+        this.visiblePoolEnd = end
           target.scrollTop += 1
           if (!downNoStick) {
             this.$nextTick(() => {
