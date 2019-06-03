@@ -121,7 +121,7 @@ export default {
         let end = this.itemPool.length
 
         // Preserve current position if view pool is full, user not scrolled to bottom & new item arrives
-        if (vpf) {
+        if (vpf && !this.onBottom) {
           end = this.visiblePoolEnd
         }
         let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
