@@ -136,7 +136,9 @@ export default {
           end = this.visiblePoolEnd
         }
         let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
-        this.shiftViewPool({ end, start, target, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
+
+        let vps = (this.visiblePoolEnd - this.visiblePoolStart) >= this.adjustedViewPoolSize ? 0 : 1
+        this.shiftViewPool({ end, start, vps, target, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
       },
     },
   },
@@ -187,7 +189,6 @@ export default {
 
     onScrollBottom ({ target }) {
       console.debug('scroll.bottom', { target })
-      this.onBottom = true
       if (this.isLastViewPool) {
         console.debug('scroll.bottom.last')
         this.$emit('scroll:bottom:last')
@@ -244,6 +245,7 @@ export default {
       this.onBottom = false
       this.onTop = false
       if (scrolledBottom(target) && !this.blockScrollDown) {
+        this.onBottom = true
         this.onScrollBottom({ target })
       }
 
@@ -253,24 +255,23 @@ export default {
     },
 
     shiftViewPool ({ start, end, target, vps = this.visiblePoolSize, shrink = false, direction = 'down', downNoStick = true }) {
-      console.debug('shiftViewPool', { start, end, target, shrink, direction, downNoStick })
+      console.debug('shiftViewPool', { start, end, vps, target, shrink, direction, downNoStick })
 
       if (direction === 'down') {
-        target.scrollTop -= 1
+        const offset = target.scrollHeight - (target.scrollTop + target.clientHeight)
+        console.debug({ offset })
         if (shrink) {
           this.visiblePoolStart = start
         }
-        this.$nextTick(() => {
           this.visiblePoolEnd = end
-          target.scrollTop += 1
-          if (!downNoStick) {
             this.$nextTick(() => {
+          if (downNoStick) {
+            target.children[target.children.length - vps - 1].scrollIntoView(false)
+            target.scrollTop -= offset
+          }  else  {
               target.scrollTop = target.scrollHeight
-              this.blockScrollDown = false
-            })
-          } else {
-            this.blockScrollDown = false
           }
+            this.blockScrollDown = false
         })
       } else if (direction === 'up') {
         const prevOffset = target.scrollTop
