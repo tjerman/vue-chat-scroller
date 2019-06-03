@@ -188,9 +188,9 @@ export default {
         this.onBottom = true
         if (this.isLastViewPool) {
           console.debug('scroll.bottom.last')
-          this.$emit('scroll.bottom.last')
+        this.$emit('scroll:bottom:last')
         } else {
-          this.$emit('scroll.bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length })
+        this.$emit('scroll:bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length })
           this.blockScrollDown = true
           let vps = this.visiblePoolSize
           if (this.visiblePoolEnd + vps >= this.itemPool.length) {
@@ -213,9 +213,9 @@ export default {
         this.onTop = true
         if (this.isFirstViewPool) {
           console.debug('scroll.top.first')
-          this.$emit('scroll.top.first')
+        this.$emit('scroll:top:first')
         } else {
-          this.$emit('scroll.top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0 })
+        this.$emit('scroll:top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0 })
           this.blockScrollUp = true
 
           let vps = this.visiblePoolSize
