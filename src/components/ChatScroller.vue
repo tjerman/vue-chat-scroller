@@ -39,6 +39,12 @@ export default {
       required: false,
       default: false,
     },
+    viewPoolSizeMult: {
+      type: Number,
+      required: false,
+      default: 2,
+    },
+
     // @todo
     addaptiveBuffer: {
       type: Boolean,
@@ -58,7 +64,6 @@ export default {
       blockScrollDown: false,
       blockScrollUp: false,
       prevFirstID: undefined,
-      viewPoolSizeMult: 2,
     }
   },
   computed: {
