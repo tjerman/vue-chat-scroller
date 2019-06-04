@@ -143,7 +143,7 @@ export default {
         // Determine if message is alertable. Can specify explicitly that it's not.
         console.debug({ lastItem })
         if (!this.isLastViewPool && this.prevLastID !== lastItem.id && [undefined, true].indexOf(lastItem.alertable) > -1) {
-          this.$emit('item:new:invisible', { id: lastItem.id, index: this.itemPool.length - 1 })
+          this.$emit('item:new:invisible', { id: lastItem.id, index: this.itemPool.length - 1, item: lastItem })
         }
         this.prevLastID = this.itemPool[this.itemPool.length - 1].id
       },
