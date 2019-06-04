@@ -246,7 +246,6 @@ export default {
         console.debug('scroll.bottom.last')
         this.$emit('scroll:bottom:last')
       } else {
-        this.$emit('scroll:bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length })
         this.blockScrollDown = true
         let vps = this.visiblePoolSize
         if (this.visiblePoolEnd + vps >= this.itemPool.length) {
@@ -261,6 +260,8 @@ export default {
           shrink: this.isViewPoolFull,
           direction: 'down',
         })
+
+        this.$emit('scroll:bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length, lastViewPool: this.isLastViewPool, firstViewPool: this.isFirstViewPool })
       }
     },
 
@@ -270,7 +271,6 @@ export default {
         console.debug('scroll.top.first')
         this.$emit('scroll:top:first')
       } else {
-        this.$emit('scroll:top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0 })
         this.blockScrollUp = true
 
         let vps = Math.min(this.visiblePoolSize, Math.min(this.visiblePoolStart, this.adjustedViewPoolSize - this.viewPool.length))
@@ -286,6 +286,8 @@ export default {
           direction: 'up',
           vps,
         })
+
+        this.$emit('scroll:top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0, lastViewPool: this.isLastViewPool, firstViewPool: this.isFirstViewPool })
       }
     },
 
