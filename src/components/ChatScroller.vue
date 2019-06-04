@@ -139,9 +139,11 @@ export default {
         let vps = (this.visiblePoolEnd - this.visiblePoolStart) >= this.adjustedViewPoolSize ? 0 : 1
         this.shiftViewPool({ end, start, vps, target, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
 
-        const crtLastID = this.itemPool[this.itemPool.length - 1].id
-        if (!this.isLastViewPool && this.prevLastID !== crtLastID) {
-          this.$emit('item:new:invisible', { id: crtLastID, index: this.itemPool.length - 1 })
+        const lastItem = this.itemPool[this.itemPool.length - 1]
+        // Determine if message is alertable. Can specify explicitly that it's not.
+        console.debug({ lastItem })
+        if (!this.isLastViewPool && this.prevLastID !== lastItem.id && [undefined, true].indexOf(lastItem.alertable) > -1) {
+          this.$emit('item:new:invisible', { id: lastItem.id, index: this.itemPool.length - 1 })
         }
         this.prevLastID = this.itemPool[this.itemPool.length - 1].id
       },
