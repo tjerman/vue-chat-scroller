@@ -14,6 +14,7 @@
 </template>
 
 <script>
+// Helpers to determine edge scroll positions
 const scrolledBottom = ({ scrollTop: st, scrollHeight: sh, clientHeight: ch }, buffer = 0) => Math.ceil(st + ch + buffer) >= sh
 const scrolledTop = ({ scrollTop: st }, buffer = 0) => Math.ceil(st - buffer) <= 0
 
@@ -44,30 +45,40 @@ export default {
       required: false,
       default: 2,
     },
-
-    // @todo
-    addaptiveBuffer: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
   },
 
   data () {
     return {
+      // General
+      initialized: false,
+
+      // Pool params
       visiblePoolStart: 0,
       visiblePoolEnd: 0,
       visiblePoolSize: 0,
-      initialized: false,
+
+      // Current edge position
       onBottom: this.startBottom,
       onTop: !this.startBottom,
+
+      // Locks
       blockScrollDown: false,
       blockScrollUp: false,
+
+      // Item pool changes
       prevFirstID: undefined,
       prevLastID: undefined,
     }
   },
   computed: {
+    getItemPool () {
+      if (!this.initialized) {
+        return
+      }
+
+      return this.itemPool
+    },
+
     viewPool () {
       return this.itemPool.slice(this.visiblePoolStart, this.visiblePoolEnd)
     },
@@ -89,68 +100,38 @@ export default {
 
     currentViewPoolSize () {
       return this.visiblePoolEnd - this.visiblePoolStart
-  },
+    },
   },
 
   watch: {
-    itemPool: {
+    getItemPool: {
       immediate: true,
-      handler: function (nval = []) {
-        if (nval.length <= 0) return
-        if (this.prevFirstID === undefined) {
-          this.prevFirstID = this.itemPool[0].id
-        }
-        if (this.prevLastID === undefined) {
-          this.prevLastID = this.itemPool[this.itemPool.length - 1].id
-        }
-        if (!this.initialized) {
-          this.init()
-          this.initialized = true
+      handler: function (nval) {
+        if (!nval) {
           return
         }
 
         let target = this.$refs.scrollerWrapper
-        console.debug({ prevFirstID: this.prevFirstID, crtFirstID: this.itemPool[0].id })
-        let displace = 0
         let vpf = this.isViewPoolFull
-        if (this.prevFirstID !== this.itemPool[0].id) {
-          while (this.itemPool[displace].id !== this.prevFirstID && displace < this.itemPool.length) { displace++ }
-          this.prevFirstID = this.itemPool[0].id
-          console.debug({ displace })
 
-          // Shift pool by displaced items
-          this.visiblePoolEnd += displace
-            this.visiblePoolStart += displace
-          console.debug({ visiblePoolEnd: this.visiblePoolEnd, visiblePoolStart: this.visiblePoolStart, vpf, onTop: this.onTop })
-
-            this.onScrollTop({ target })
-          return
+        // Handle new items
+        if (this.prevLastID !== (this.itemPool[this.itemPool.length - 1] || {}).id) {
+          this.onItemBelow({ target, vpf, stickBottom: this.onBottom })
+          this.emitItemInvisible(this.itemPool.length - 1, !this.isFirstViewPool)
+        } else if (this.prevFirstID !== (this.itemPool[0] || {}).id) {
+          this.onItemAbove({ target, stickTop: this.onTop && !this.startBottom })
+          this.emitItemInvisible(0, !this.isFirstViewPool)
         }
 
-        // Possible new item
-        let end = this.itemPool.length
-
-        // Preserve current position if view pool is full, user not scrolled to bottom & new item arrives
-        if (vpf && !this.onBottom) {
-          end = this.visiblePoolEnd
-        }
-        let start = this.visiblePoolStart + (end - this.visiblePoolEnd)
-
-        let vps = (this.visiblePoolEnd - this.visiblePoolStart) >= this.adjustedViewPoolSize ? 0 : 1
-        this.shiftViewPool({ end, start, vps, target, shrink: this.onBottom && this.isViewPoolFull, direction: 'down', downNoStick: !this.onBottom })
-
-        const lastItem = this.itemPool[this.itemPool.length - 1]
-        // Determine if message is alertable. Can specify explicitly that it's not.
-        console.debug({ lastItem })
-        if (!this.isLastViewPool && this.prevLastID !== lastItem.id && [undefined, true].indexOf(lastItem.alertable) > -1) {
-          this.$emit('item:new:invisible', { id: lastItem.id, index: this.itemPool.length - 1, item: lastItem })
-        }
-        this.prevLastID = this.itemPool[this.itemPool.length - 1].id
+        // Meta
+        this.prevFirstID = (this.itemPool[0] || {}).id
+        this.prevLastID = (this.itemPool[this.itemPool.length - 1] || {}).id
       },
     },
   },
 
   mounted () {
+    this.init()
     window.addEventListener('resize', this.onResize)
   },
   beforeDestroy () {
@@ -158,6 +139,36 @@ export default {
   },
 
   methods: {
+    emitItemInvisible (index, condition) {
+      const item = this.itemPool[index]
+      if (condition && [undefined, true].indexOf(item.alertable) > -1) {
+        this.$emit('item:new:invisible', { id: item.id, index, item })
+      }
+    },
+
+    onItemAbove ({ target, stickTop }) {
+      // Recalculate visible pool's indexes
+      let displace = 0
+      while (displace < this.itemPool.length && this.itemPool[displace].id !== this.prevFirstID) {
+        displace++
+      }
+
+      this.visiblePoolEnd += displace
+      this.visiblePoolStart += displace
+
+      this.onScrollTop({ target, stickTop })
+    },
+
+    onItemBelow ({ target, vpf, stickBottom }) {
+      if (vpf && !this.onBottom) {
+        // Preserve current pool
+        return
+      }
+
+      this.onScrollBottom({ target, stickBottom })
+    },
+
+    // @todo clean this up
     gotoItem ({ id, index }) {
       if (!id && !index) return 'item.invalidParams'
 
@@ -177,7 +188,7 @@ export default {
       // Scroll to
       // Adjust visible pool
       let target = this.$refs.scrollerWrapper
-      let offset = index - this.visiblePoolStart
+      // let offset = index - this.visiblePoolStart
       let start, end
 
       start = index
@@ -209,7 +220,6 @@ export default {
       const clientH = ref.clientHeight
       const minH = this.minHeight
       const visiblePoolSize = Math.ceil((clientH + 2 * this.buffer) / minH)
-      console.debug('getPoolSizes', { ref, clientH, minH, visiblePoolSize, buffer: this.buffer })
       return { ref, clientH, minH, visiblePoolSize, buffer: this.buffer }
     },
 
@@ -225,32 +235,33 @@ export default {
 
     init () {
       this.$nextTick(() => {
-        let { visiblePoolSize } = this.getPoolSizes()
-        this.visiblePoolSize = visiblePoolSize
+        // General params
+        this.visiblePoolSize = this.getPoolSizes().visiblePoolSize
 
+        // View pool params
         if (this.startBottom) {
           this.visiblePoolEnd = this.itemPool.length || 0
           this.visiblePoolStart = Math.max(0, this.visiblePoolEnd - this.visiblePoolSize)
           this.$nextTick(() => {
             this.$refs.scrollerWrapper.scrollTop = this.$refs.scrollerWrapper.scrollHeight
+            this.onBottom = true
           })
         } else {
           this.visiblePoolEnd = Math.min(this.itemPool.length, this.visiblePoolStart + this.visiblePoolSize)
+          this.onTop = true
         }
+
+        this.initialized = true
       })
     },
 
-    onScrollBottom ({ target }) {
-      console.debug('scroll.bottom', { target })
+    onScrollBottom ({ target, stickBottom }) {
       if (this.isLastViewPool) {
-        console.debug('scroll.bottom.last')
         this.$emit('scroll:bottom:last')
       } else {
         this.blockScrollDown = true
-        let vps = this.visiblePoolSize
-        if (this.visiblePoolEnd + vps >= this.itemPool.length) {
-          vps = Math.min(this.itemPool.length - this.visiblePoolEnd, this.visiblePoolSize)
-        }
+
+        let vps = Math.min(this.itemPool.length - this.visiblePoolEnd, this.visiblePoolSize)
 
         this.shiftViewPool({
           start: this.visiblePoolStart + vps,
@@ -259,25 +270,20 @@ export default {
           target,
           shrink: this.isViewPoolFull,
           direction: 'down',
+          stickBottom,
         })
 
         this.$emit('scroll:bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length, lastViewPool: this.isLastViewPool, firstViewPool: this.isFirstViewPool })
       }
     },
 
-    onScrollTop ({ target }) {
-      console.debug('scroll.top', { target })
+    onScrollTop ({ target, stickTop }) {
       if (this.isFirstViewPool) {
-        console.debug('scroll.top.first')
         this.$emit('scroll:top:first')
       } else {
         this.blockScrollUp = true
 
-        let vps = Math.min(this.visiblePoolSize, Math.min(this.visiblePoolStart, this.adjustedViewPoolSize - this.viewPool.length))
-        if (this.onTop && vps === 0) {
-          vps = Math.min(this.visiblePoolStart, this.visiblePoolSize)
-        }
-        console.debug({ vps, visiblePoolStart: this.visiblePoolStart, visiblePoolEnd: this.visiblePoolEnd, visiblePoolSize: this.visiblePoolSize })
+        let vps = Math.min(this.visiblePoolSize, this.visiblePoolStart)
         this.shiftViewPool({
           start: this.visiblePoolStart - vps,
           end: this.visiblePoolEnd - vps,
@@ -285,6 +291,7 @@ export default {
           shrink: this.isViewPoolFull,
           direction: 'up',
           vps,
+          stickTop,
         })
 
         this.$emit('scroll:top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0, lastViewPool: this.isLastViewPool, firstViewPool: this.isFirstViewPool })
@@ -293,7 +300,9 @@ export default {
 
     // Handle view pools
     onScroll ({ target }) {
-      if (target === undefined) return
+      if (target === undefined) {
+        return
+      }
 
       // This if structure is by design - removes the need to check scroll edges on
       // screen resize.
@@ -310,36 +319,38 @@ export default {
       }
     },
 
-    shiftViewPool ({ start, end, target, vps = this.visiblePoolSize, shrink = false, direction = 'down', downNoStick = true }) {
-      console.debug('shiftViewPool', { start, end, vps, target, shrink, direction, downNoStick })
-
+    shiftViewPool ({ start, end, target, vps = this.visiblePoolSize, shrink = false, direction = 'down', stickBottom = false, stickTop = false }) {
       if (direction === 'down') {
-        const offset = target.scrollHeight - (target.scrollTop + target.clientHeight)
-        console.debug({ offset })
+        // New view pool indexes
         if (shrink) {
           this.visiblePoolStart = start
         }
-          this.visiblePoolEnd = end
-            this.$nextTick(() => {
-          if (downNoStick) {
-            target.children[target.children.length - vps - 1].scrollIntoView(false)
-            target.scrollTop -= offset
-          }  else  {
-              target.scrollTop = target.scrollHeight
+        this.visiblePoolEnd = end
+
+        // Determine new scrollTopPosition with the help of last node & root's offset
+        const offset = ((target.children[target.children.length - 1] || {}).offsetTop || 0) - target.scrollTop
+        this.$nextTick(() => {
+          if (stickBottom) {
+            target.scrollTop = target.scrollHeight
+          } else {
+            target.scrollTop = target.children[target.children.length - vps - 1].offsetTop - offset
           }
-            this.blockScrollDown = false
+          this.blockScrollDown = false
         })
       } else if (direction === 'up') {
-        const prevOffset = target.scrollTop
         if (shrink) {
           this.visiblePoolEnd = end
         }
         this.visiblePoolStart = start
+
+        // Determine new scrollTopPosition with the help of first node and target's scrollTop
+        const offset = ((target.children[0] || {}).offsetTop || 0) - target.scrollTop
         this.$nextTick(() => {
-          // Scroll down to the previus first element
-          const prevChild = target.children[vps]
-          prevChild.scrollIntoView()
-          target.scrollTop += prevOffset
+          if (stickTop) {
+            target.scrollTop = 0
+          } else {
+            target.scrollTop = ((target.children[vps] || {}).offsetTop || 0) - offset
+          }
           this.blockScrollUp = false
         })
       }
