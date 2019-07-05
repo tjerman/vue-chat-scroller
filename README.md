@@ -70,8 +70,6 @@ Can be any structure, that is able to provide these fields:
 #### Methods
   * `gotoItem ({ id, index })`
       * When invoked, the method will attempt to scroll to the item identified by the `id` or an `index`. If `index` is provided, the `id` can be omitted. If the `index` is omitted, the `id` must be provided. If the item is not found, the function returns an error string, else it returns `true`.
-        * @todo improve scroll to item above.
-        * @todo improve errors.
 
 #### Example
 ```html
@@ -105,6 +103,57 @@ Can be any structure, that is able to provide these fields:
         Go to last unread
       </button>
     </div>
+  </div>
+</template>
+
+```
+
+### Scrollbar
+The component provides a virtual scrollbar that prevents glitches caused by native scrollbar.
+
+It only provides an enhancement to the native scroll behaviour and does not re-implement it.
+
+#### Props
+ * `scrollable: { required: true, default: null }`
+   * Scrollable container that this component should be bound to.
+
+ * `minHeight: { type: Number, required: false, default: 30 }`
+   * Minimum thumb size.
+
+#### Events
+ * `'drag:start: {}`
+   * Fired when dragging starts.
+ * `'drag:end: {}`
+   * Fired when dragging ends.
+
+#### Slots
+None
+
+#### Methods
+None
+
+#### Example
+```html
+<template>
+  <div class="wrapper">
+    <div ref="wrapper">
+
+      <item
+        v-for="(item, i) in items"
+        :key="item.id"
+        :item="item"
+        :index="visiblePoolStart + i"
+        class="item-wrapper" />
+
+    </div>
+
+    <scrollbar
+      v-if="loaded"
+      :class="{ visible: scrollbarPerminant }"
+      :scrollable="$refs.wrapper"
+      @drag:start="onDragStart"
+      @drag:end="onDragEnd" />
+
   </div>
 </template>
 
