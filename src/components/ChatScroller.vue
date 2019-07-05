@@ -1,24 +1,41 @@
 <template>
-  <div
-    ref="scrollerWrapper"
-    class="scroller-wrapper"
-    @scroll.passive="onScroll">
+  <div class="wrapper">
+    <div
+      ref="chatWrapper"
+      class="chat"
+      @scroll.passive="onScroll">
 
-    <slot
-      v-for="(item, i) in viewPool"
-      :item="item"
-      :index="visiblePoolStart + i"
-      class="item-wrapper" />
+      <slot
+        v-for="(item, i) in viewPool"
+        :item="item"
+        :index="visiblePoolStart + i"
+        class="item-wrapper" />
+
+    </div>
+
+    <scrollbar
+      v-if="loaded"
+      class="scrollbar"
+      :class="{ visible: scrollbarPerminant }"
+      :scrollable="$refs.chatWrapper"
+      @drag:start="scrollbarPerminant=true"
+      @drag:end="scrollbarPerminant=false" />
 
   </div>
 </template>
 
 <script>
+import Scrollbar from './Scrollbar'
+
 // Helpers to determine edge scroll positions
 const scrolledBottom = ({ scrollTop: st, scrollHeight: sh, clientHeight: ch }, buffer = 0) => Math.ceil(st + ch + buffer) >= sh
 const scrolledTop = ({ scrollTop: st }, buffer = 0) => Math.ceil(st - buffer) <= 0
 
 export default {
+  components: {
+    Scrollbar,
+  },
+
   props: {
     itemPool: {
       type: Array,
@@ -68,6 +85,10 @@ export default {
       // Item pool changes
       prevFirstID: undefined,
       prevLastID: undefined,
+
+      // Scrollbar
+      scrollbarPerminant: false,
+      loaded: false,
     }
   },
   computed: {
@@ -111,7 +132,7 @@ export default {
           return
         }
 
-        let target = this.$refs.scrollerWrapper
+        let target = this.$refs.chatWrapper
         let vpf = this.isViewPoolFull
 
         // Handle new items
@@ -133,6 +154,8 @@ export default {
   mounted () {
     this.init()
     window.addEventListener('resize', this.onResize)
+
+    this.loaded = true
   },
   beforeDestroy () {
     window.removeEventListener('resize', this.onResize)
@@ -187,7 +210,7 @@ export default {
 
       // Scroll to
       // Adjust visible pool
-      let target = this.$refs.scrollerWrapper
+      let target = this.$refs.chatWrapper
       // let offset = index - this.visiblePoolStart
       let start, end
 
@@ -216,7 +239,7 @@ export default {
     },
 
     getPoolSizes () {
-      const ref = this.$refs.scrollerWrapper
+      const ref = this.$refs.chatWrapper
       const clientH = ref.clientHeight
       const minH = this.minHeight
       const visiblePoolSize = Math.ceil((clientH + 2 * this.buffer) / minH)
@@ -243,7 +266,7 @@ export default {
           this.visiblePoolEnd = this.itemPool.length || 0
           this.visiblePoolStart = Math.max(0, this.visiblePoolEnd - this.visiblePoolSize)
           this.$nextTick(() => {
-            this.$refs.scrollerWrapper.scrollTop = this.$refs.scrollerWrapper.scrollHeight
+            this.$refs.chatWrapper.scrollTop = this.$refs.chatWrapper.scrollHeight
             this.onBottom = true
           })
         } else {
@@ -361,8 +384,31 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.scroller-wrapper {
-  overflow-y: scroll;
+.wrapper {
+  position: relative;
+  overflow: hidden;
+
+  .chat {
+    height: 100%;
+    overflow-y: scroll;
+  }
+
+  .scrollbar {
+    transition: transform .3s;
+    transform: translateX(100%);
+
+    &.visible {
+      transform: translateX(0);
+    }
+  }
+
+  &:hover .scrollbar {
+    transform: translateX(0);
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 </style>
