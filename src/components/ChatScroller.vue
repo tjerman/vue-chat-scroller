@@ -191,51 +191,45 @@ export default {
       this.onScrollBottom({ target, stickBottom })
     },
 
-    // @todo clean this up
     gotoItem ({ id, index }) {
-      if (!id && !index) return 'item.invalidParams'
+      if (id === undefined && index === undefined) {
+        throw new Error('item.invalidParams', { id, index })
+      }
 
+      // Determine item's index
       if (index === undefined) {
         // Find index from id
         index = 0
-        while (index < this.itemPool.length && this.itemPool[index].id !== id) { index++ }
-        // edge case for index 0
-        if (this.itemPool[index].id !== id) {
-          return 'item.notFound'
-        }
+        index = this.itemPool.findIndex((v) => v.id === id)
       }
 
-      let isDown = this.visiblePoolStart < index
-      if (!isDown) return 'direction.notSupported'
+      if (this.itemPool[index] === undefined) {
+        throw new Error('item.notFound', { id, index })
+      }
 
-      // Scroll to
-      // Adjust visible pool
-      let target = this.$refs.chatWrapper
-      // let offset = index - this.visiblePoolStart
-      let start, end
+      // Adjust pool if not correct
+      if (index > this.visiblePoolEnd || index < this.visiblePoolStart) {
+        const itemBelow = this.visiblePoolEnd < index
+        let displace = 0
+        if (itemBelow) {
+          // Visible pool shifted down
+          // +1, because slice doesn't include last item
+          displace = index + 1 - this.visiblePoolEnd
+        } else {
+          // Visible pool shifted up
+          displace = (this.visiblePoolStart - index) * -1
+        }
 
-      start = index
-      end = Math.min(this.itemPool.length, start + this.currentViewPoolSize)
-      start -= this.currentViewPoolSize - (end - start)
-      console.debug('gotoMessage', { start, end })
+        this.visiblePoolStart += displace
+        this.visiblePoolEnd += displace
+      }
 
-      this.shiftViewPool({
-        start,
-        end,
-        vps: 0,
-        target,
-        shrink: this.isViewPoolFull,
-        direction: isDown ? 'down' : 'up',
-      })
-
-      // Scroll to
-      let domPos = Math.min(target.childElementCount - 1, index - this.visiblePoolStart)
-      console.debug({ domPos })
+      // Determine node position & scroll into view
       this.$nextTick(() => {
-        target.children[domPos].scrollIntoView(!this.isLastViewPool)
+        const pos = Math.max(0, index - this.visiblePoolStart)
+        const node = this.$refs.chatWrapper.children[pos]
+        node.scrollIntoView(false)
       })
-
-      return true
     },
 
     getPoolSizes () {
@@ -356,7 +350,10 @@ export default {
           if (stickBottom) {
             target.scrollTop = target.scrollHeight
           } else {
-            target.scrollTop = target.children[target.children.length - vps - 1].offsetTop - offset
+            requestAnimationFrame(() => {
+              target.scrollTop = target.children[target.children.length - vps - 1].offsetTop - offset
+              requestAnimationFrame(() => {})
+            })
           }
           this.blockScrollDown = false
         })
@@ -373,6 +370,8 @@ export default {
             target.scrollTop = 0
           } else {
             target.scrollTop = ((target.children[vps] || {}).offsetTop || 0) - offset
+            requestAnimationFrame(() => {
+            })
           }
           this.blockScrollUp = false
         })
