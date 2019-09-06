@@ -34,15 +34,15 @@ export default {
   },
 
   mounted () {
-    window.addEventListener('resize', this.onResize)
-    this.scrollable.addEventListener('scroll', this.onScroll)
+    window.addEventListener('resize', this.recalculate)
+    this.scrollable.addEventListener('scroll', this.recalculate)
     this.$refs.thumb.addEventListener('mousedown', this.onMouseDown)
     window.addEventListener('mouseup', this.onMouseUp)
   },
 
   beforeDestroy () {
-    window.removeEventListener('resize', this.onResize)
-    this.scrollable.addEventListener('scroll', this.onScroll)
+    window.removeEventListener('resize', this.recalculate)
+    this.scrollable.removeEventListener('scroll', this.recalculate)
     this.$refs.thumb.removeEventListener('mousedown', this.onMouseDown)
     window.removeEventListener('mouseup', this.onMouseUp)
   },
@@ -58,11 +58,7 @@ export default {
       this.scrollable.scrollTop = offsetY * this.getTrackScrollableRatio()
     },
 
-    onResize () {
-      this.calcThumb({ target: this.scrollable })
-    },
-
-    onScroll () {
+    recalculate () {
       this.calcThumb({ target: this.scrollable })
     },
 

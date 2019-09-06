@@ -1,5 +1,7 @@
 <template>
   <div class="wrapper">
+    <slot name="header" />
+
     <div
       ref="chatWrapper"
       class="chat"
@@ -14,6 +16,7 @@
     </div>
 
     <scrollbar
+      ref="scrollbar"
       v-if="loaded"
       class="scrollbar"
       :class="{ visible: scrollbarPerminant }"
@@ -37,6 +40,18 @@ export default {
   },
 
   props: {
+    idField: {
+      type: String,
+      required: false,
+      default: 'id',
+    },
+
+    source: {
+      type: String,
+      required: true,
+      default: null,
+    },
+
     itemPool: {
       type: Array,
       required: true,
@@ -68,6 +83,7 @@ export default {
     return {
       // General
       initialized: false,
+      lastSource: this.source,
 
       // Pool params
       visiblePoolStart: 0,
@@ -91,6 +107,7 @@ export default {
       loaded: false,
     }
   },
+
   computed: {
     getItemPool () {
       if (!this.initialized) {
@@ -107,10 +124,17 @@ export default {
     isLastViewPool () {
       return this.visiblePoolEnd >= this.itemPool.length
     },
+    isSecondLastViewPool () {
+      return !this.isLastViewPool && this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length
+    },
 
     isFirstViewPool () {
       return this.visiblePoolStart <= 0
     },
+    isSecondFirstViewPool () {
+      return !this.isFirstViewPool && this.visiblePoolStart - this.visiblePoolSize <= 0
+    },
+
     adjustedViewPoolSize () {
       return this.visiblePoolSize * this.viewPoolSizeMult
     },
@@ -132,21 +156,26 @@ export default {
           return
         }
 
+        if (this.source !== this.lastSource) {
+          this.init()
+          this.$refs.scrollbar.recalculate()
+        }
+
         let target = this.$refs.chatWrapper
         let vpf = this.isViewPoolFull
 
         // Handle new items
-        if (this.prevLastID !== (this.itemPool[this.itemPool.length - 1] || {}).id) {
+        if (this.prevLastID !== (this.itemPool[this.itemPool.length - 1] || {})[this.idField]) {
           this.onItemBelow({ target, vpf, stickBottom: this.onBottom })
-          this.emitItemInvisible(this.itemPool.length - 1, !this.isFirstViewPool)
-        } else if (this.prevFirstID !== (this.itemPool[0] || {}).id) {
+          this.emitItemInvisible(this.itemPool.length - 1, !this.isFirstViewPool, 'bottom')
+        } else if (this.prevFirstID !== (this.itemPool[0] || {})[this.idField]) {
           this.onItemAbove({ target, stickTop: this.onTop && !this.startBottom })
-          this.emitItemInvisible(0, !this.isFirstViewPool)
+          this.emitItemInvisible(0, !this.isFirstViewPool, 'top')
         }
 
         // Meta
-        this.prevFirstID = (this.itemPool[0] || {}).id
-        this.prevLastID = (this.itemPool[this.itemPool.length - 1] || {}).id
+        this.prevFirstID = (this.itemPool[0] || {})[this.idField]
+        this.prevLastID = (this.itemPool[this.itemPool.length - 1] || {})[this.idField]
       },
     },
   },
@@ -154,25 +183,40 @@ export default {
   mounted () {
     this.init()
     window.addEventListener('resize', this.onResize)
-
-    this.loaded = true
   },
   beforeDestroy () {
     window.removeEventListener('resize', this.onResize)
   },
 
   methods: {
-    emitItemInvisible (index, condition) {
+    emitItemInvisible (index, condition, end) {
       const item = this.itemPool[index]
       if (condition && [undefined, true].indexOf(item.alertable) > -1) {
-        this.$emit('item:new:invisible', { id: item.id, index, item })
+        this.$emit('items:new:invisible', { index, item, end })
       }
+    },
+
+    suggestFetch ({ expand = 'down' } = {}) {
+      let edgeItem
+      if (!this.itemPool || !this.itemPool.length) {
+        edgeItem = null
+      } else {
+        edgeItem = expand === 'down' ?
+          this.itemPool[this.itemPool.length - 1] :
+          this.itemPool[0]
+      }
+
+      this.$emit('items:fetch', {
+        expand,
+        edgeItem,
+        preferredChunkSize: Math.max(this.adjustedViewPoolSize * 2, 150),
+      })
     },
 
     onItemAbove ({ target, stickTop }) {
       // Recalculate visible pool's indexes
       let displace = 0
-      while (displace < this.itemPool.length && this.itemPool[displace].id !== this.prevFirstID) {
+      while (displace < this.itemPool.length && this.itemPool[displace][this.idField] !== this.prevFirstID) {
         displace++
       }
 
@@ -193,18 +237,16 @@ export default {
 
     gotoItem ({ id, index }) {
       if (id === undefined && index === undefined) {
-        throw new Error('item.invalidParams', { id, index })
+        throw new Error('goto.invalidParams', { id, index })
       }
 
       // Determine item's index
       if (index === undefined) {
-        // Find index from id
-        index = 0
-        index = this.itemPool.findIndex((v) => v.id === id)
+        index = this.itemPool.findIndex((v) => v[this.idField] === id)
       }
 
-      if (this.itemPool[index] === undefined) {
-        throw new Error('item.notFound', { id, index })
+      if (index < 0) {
+        throw new Error('goto.notFound', { id, index })
       }
 
       // Adjust pool if not correct
@@ -251,6 +293,31 @@ export default {
     },
 
     init () {
+      // General
+      this.initialized = false
+      this.lastSource = this.source
+
+      // Pool params
+      this.visiblePoolStart = 0
+      this.visiblePoolEnd = 0
+      this.visiblePoolSize = 0
+
+      // Current edge position
+      this.onBottom = this.startBottom
+      this.onTop = !this.startBottom
+
+      // Locks
+      this.blockScrollDown = false
+      this.blockScrollUp = false
+
+      // Item pool changes
+      this.prevFirstID = undefined
+      this.prevLastID = undefined
+
+      // Scrollbar
+      this.scrollbarPerminant = false
+      this.loaded = false
+
       this.$nextTick(() => {
         // General params
         this.visiblePoolSize = this.getPoolSizes().visiblePoolSize
@@ -269,16 +336,21 @@ export default {
         }
 
         this.initialized = true
+        this.loaded = true
       })
     },
 
     onScrollBottom ({ target, stickBottom }) {
+      if (this.isLastViewPool || this.isSecondLastViewPool) {
+        this.suggestFetch()
+      }
+
       if (this.isLastViewPool) {
-        this.$emit('scroll:bottom:last')
+        this.$emit('view:shift:down:last', this.viewPool[this.viewPool.length - 1])
       } else {
         this.blockScrollDown = true
 
-        let vps = Math.min(this.itemPool.length - this.visiblePoolEnd, this.visiblePoolSize)
+        let vps = Math.min(this.itemPool.length - this.visiblePoolEnd, Math.ceil(this.visiblePoolSize * 0.75))
 
         this.shiftViewPool({
           start: this.visiblePoolStart + vps,
@@ -290,17 +362,26 @@ export default {
           stickBottom,
         })
 
-        this.$emit('scroll:bottom', { nextLast: this.visiblePoolEnd + this.visiblePoolSize >= this.itemPool.length, lastViewPool: this.isLastViewPool, firstViewPool: this.isFirstViewPool })
+        this.$emit('view:shift:down', {
+          nextLast: this.isSecondLastViewPool,
+          last: this.isLastViewPool,
+          nextFirst: this.isSecondFirstViewPool,
+          first: this.isFirstViewPool,
+        })
       }
     },
 
     onScrollTop ({ target, stickTop }) {
+      if (this.isFirstViewPool || this.isSecondFirstViewPool) {
+        this.suggestFetch({ expand: 'up' })
+      }
+
       if (this.isFirstViewPool) {
-        this.$emit('scroll:top:first')
+        this.$emit('view:shift:top:first', this.viewPool[0])
       } else {
         this.blockScrollUp = true
 
-        let vps = Math.min(this.visiblePoolSize, this.visiblePoolStart)
+        let vps = Math.min(this.visiblePoolStart, Math.ceil(this.visiblePoolSize * 0.75))
         this.shiftViewPool({
           start: this.visiblePoolStart - vps,
           end: this.visiblePoolEnd - vps,
@@ -311,7 +392,12 @@ export default {
           stickTop,
         })
 
-        this.$emit('scroll:top', { nextLast: this.visiblePoolStart - this.visiblePoolSize <= 0, lastViewPool: this.isLastViewPool, firstViewPool: this.isFirstViewPool })
+        this.$emit('view:shift:top', {
+          nextLast: this.isSecondLastViewPool,
+          last: this.isLastViewPool,
+          nextFirst: this.isSecondFirstViewPool,
+          first: this.isFirstViewPool,
+        })
       }
     },
 
@@ -350,10 +436,7 @@ export default {
           if (stickBottom) {
             target.scrollTop = target.scrollHeight
           } else {
-            requestAnimationFrame(() => {
-              target.scrollTop = target.children[target.children.length - vps - 1].offsetTop - offset
-              requestAnimationFrame(() => {})
-            })
+            target.scrollTop = target.children[target.children.length - vps - 1].offsetTop - offset
           }
           this.blockScrollDown = false
         })
@@ -370,8 +453,6 @@ export default {
             target.scrollTop = 0
           } else {
             target.scrollTop = ((target.children[vps] || {}).offsetTop || 0) - offset
-            requestAnimationFrame(() => {
-            })
           }
           this.blockScrollUp = false
         })
@@ -386,6 +467,8 @@ export default {
 .wrapper {
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 
   .chat {
     height: 100%;
